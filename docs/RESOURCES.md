@@ -34,7 +34,3 @@ If you enjoy data visualization and want to excel, spend some time understanding
 Do a search for Seaborn Gallery to see examples of charts you can create with Seaborn.
 Seaborn is a Python data visualization library based on matplotlib.
 It provides a high-level interface for drawing attractive and informative statistical graphics.
-
-## Creating Interactive Widgets with ipywidgets
-
-Learn more about adding interactivity to your notebooks with https://ipywidgets.readthedocs.io/.

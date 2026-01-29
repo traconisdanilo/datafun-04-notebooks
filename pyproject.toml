@@ -15,11 +15,12 @@ version = "0.1.0"
 
 dependencies = [
     # REQ.DEPS: External packages used by the project code.
-    "datafun-toolkit>=0.9.4",
+    "datafun-toolkit>=0.9.5",
     "ipykernel>=7.1.0",
     "ipython>=9.9.0",
-    "pandas>=2.3.3",
+    "pandas>=3.0.0",
     "scikit-learn>=1.3.0",
+    "seaborn>=0.13.0",
     "matplotlib>=3.8.0"
 ]
 
@@ -28,7 +29,7 @@ dependencies = [
 dev = [
     # REQ.DEV.DEPS: External packages used for linting, testing, type checking, etc.
     "bandit>=1.7.5",
-    "packaging>=25.0",
+    "packaging>=26.0",
     "pre-commit>=4",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
@@ -43,7 +44,7 @@ docs = [
     "mkdocs>=1.5",
     "mkdocs-material>=9",
     "mkdocs-static-i18n>=1.3.0",
-    "mkdocstrings[python]>=1.0.0",
+    "mkdocstrings[python]>=1.0.2",
 ]
 
 # === PYRIGHT (TYPE CHECKING HELPS FIND COMMON ERRORS BEFORE THE CODE RUNS) ===
@@ -71,6 +72,15 @@ reportOptionalSubscript = "warning"
 # Reduce noise
 reportPrivateUsage = "none"
 useLibraryCodeForTypes = false
+
+# Reduce more associated with EDA
+reportUnknownMemberType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownParameterType = "none"
+reportUnknownVariableType = "none"
+reportUnknownReturnType = "none"
+reportUnknownLambdaType = "none"
+reportUnknownNamedArgumentType = "none"
 
 # Environment resolution
 venv = ".venv"

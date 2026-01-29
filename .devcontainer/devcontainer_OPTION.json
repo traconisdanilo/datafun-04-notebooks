@@ -16,12 +16,15 @@
         "editorconfig.editorconfig",
         "redhat.vscode-yaml",
         "tamasfe.even-better-toml",
-        "yzhang.markdown-all-in-one"
+        "yzhang.markdown-all-in-one",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-renderers",
+        "mechatroner.rainbow-csv"
       ]
     }
   },
 
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 
-  "forwardPorts": []
+  "forwardPorts": [8000]
 }

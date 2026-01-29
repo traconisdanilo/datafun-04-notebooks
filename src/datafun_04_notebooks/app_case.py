@@ -9,32 +9,41 @@ Purpose:
 
 This file is written as a runnable script.
 
-Assumptions:
-- You have a CSV file at: data/raw/penguins.csv
-- The CSV contains columns like:
-  species, island, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, sex, year
+Data Source:
+- Palmer Archipelago (Antarctica) penguin data
+- Available via Seaborn
 
+Assumptions:
+- The data contains columns like:
+  species, island, bill_length_mm, bill_depth_mm,
+  flipper_length_mm, body_mass_g, sex, year
 
 OBS:
   Don't edit this file - it should remain a working example.
 """
 
 
-# === DECLARE IMPORTS ===
+# === Section 1a. Imports ===
 
-from pathlib import Path
+# Imports at the top of the file
+# REQ.EXTERNAL.DEPS: External packages must be defined in pyproject.toml
+# REQ.EXTERNAL.DEPS.INSTALLED: External packages must be installed using uv sync
+# REQ.EXTERNAL.DEPS.IMPORTED: External packages used must be imported here
 
+import logging  # for type hinting only
+
+from datafun_toolkit.logger import get_logger, log_header
+from matplotlib.axes import Axes
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 
-# === CONFIGURE LOGGER ONCE PER MODULE (FILE) ===
+# === Section 1b. Configure Logger (once per file) ===
 
-LOG: logging.Logger = get_logger("P04", level="DEBUG")
+LOG: logging.Logger = get_logger("EDA", level="DEBUG")
 
 
-# === DECLARE GLOBAL CONSTANTS ===
-
-ROOT_DIR = Path.cwd()
-RAW_PATH = ROOT_DIR / "data" / "raw" / "penguins.csv"
+# === Section 1c. Global Constants and Configuration ===
 
 NUMERIC_COLS = [
     "bill_length_mm",
@@ -45,174 +54,233 @@ NUMERIC_COLS = [
 
 GROUP_COL = "species"
 
-# === SET CONFIGURATION ===
-
-# Set pandas display options (optional but helpful in notebooks)
+# Pandas display configuration (helps in notebooks)
 pd.set_option("display.max_columns", 50)
 pd.set_option("display.width", 120)
 
 
-# --- Code Cell: Load the data ---
-
-# Read CSV into a DataFrame
-df = pd.read_csv(RAW_PATH)
-
-print("Loaded data from:", RAW_PATH)
-print("Rows, Columns:", df.shape)
+# === Section 2. Load the Data ===
 
 
-# --- Code Cell: Initial inspection (head, columns, info) ---
+def load_data() -> pd.DataFrame:
+    """Load data into a DataFrame.
 
-print("\nFirst 5 rows:")
-print(df.head())
-
-print("\nColumn names:")
-print(list(df.columns))
-
-print("\nInfo (types, non-null counts):")
-print(df.info())
-
-
-# --- Code Cell: Dataset size and structure (rows/cols) ---
-
-n_rows, n_cols = df.shape
-print("\nDataset size:")
-print("Number of records (rows):", n_rows)
-print("Number of columns:", n_cols)
+    Notes for learners:
+    - Here we load data directly from Seaborn.
+    - In other projects, you may load from CSV or a database.
+    """
+    LOG.info("Loading penguins dataset from seaborn")
+    df = sns.load_dataset("penguins")
+    LOG.info("Data loaded: %s rows, %s columns", df.shape[0], df.shape[1])
+    return df
 
 
-# --- Code Cell: Data dictionary starter (column + dtype + missing count) ---
-
-# This is a compact "starter dictionary" students can expand later.
-data_dictionary = pd.DataFrame(
-    {
-        "column": df.columns,
-        "dtype": [str(t) for t in df.dtypes],
-        "missing_count": df.isna().sum().values,
-        "missing_pct": (df.isna().mean() * 100).round(2).values,
-    }
-)
-
-print("\nData dictionary (starter):")
-print(data_dictionary)
+# === Section 3. Understand Data Shape and Basic Structure ===
 
 
-# --- Code Cell: Data quality checks (missing, duplicates, basic sanity) ---
+def inspect_basic(df: pd.DataFrame) -> None:
+    """Inspect basic structure of the dataset.
 
-print("\nMissing values per column:")
-print(df.isna().sum().sort_values(ascending=False))
+    This step answers:
+    - What columns exist?
+    - What types are they?
+    - How large is the dataset?
+    """
+    LOG.info("Inspecting first rows of data")
+    LOG.debug("\n%s", df.head())
 
-dup_count = int(df.duplicated().sum())
-print("\nDuplicate rows:", dup_count)
+    LOG.info("Column names")
+    LOG.debug("%s", list(df.columns))
 
-print("\nBasic sanity check for numeric columns:")
-print(df[NUMERIC_COLS].describe())
+    LOG.info("DataFrame info (types and non-null counts)")
+    df.info()
 
-
-# --- Code Cell: Optional cleaning step (drop rows missing key numeric fields) ---
-
-# For EDA, it's common to create a "cleaned view" used for numeric analysis.
-# We keep the original df and create df_clean.
-df_clean = df.dropna(subset=NUMERIC_COLS + [GROUP_COL])
-
-print("\nAfter dropping rows missing key numeric fields:")
-print("Rows, Columns:", df_clean.shape)
+    LOG.info("Dataset shape: %s rows, %s columns", df.shape[0], df.shape[1])
 
 
-# --- Code Cell: Descriptive statistics overall ---
-
-stats_overall = df_clean[NUMERIC_COLS].describe().T
-print("\nOverall descriptive statistics (numeric columns):")
-print(stats_overall)
+# === Section 4. Check for Missing Data ===
 
 
-# --- Code Cell: Descriptive statistics by group (species) ---
+def build_data_dictionary(df: pd.DataFrame) -> pd.DataFrame:
+    """Build a starter data dictionary.
 
-# Grouped summary helps answer the guiding question:
-# "Do measurements differ by species?"
-stats_by_species = df_clean.groupby(GROUP_COL)[NUMERIC_COLS].agg(
-    ["count", "mean", "std", "min", "max"]
-)
-print("\nDescriptive statistics by species:")
-print(stats_by_species)
+    Includes:
+    - column name
+    - data type
+    - missing value count
+    - percent missing
+    """
+    LOG.info("Building starter data dictionary")
 
+    data_dictionary = pd.DataFrame(
+        {
+            "column": df.columns,
+            "dtype": [str(t) for t in df.dtypes],
+            "missing_count": df.isna().sum().values,
+            "missing_pct": (df.isna().mean() * 100).round(2).values,
+        }
+    )
 
-# --- Code Cell: Simple correlations (numeric only) ---
-
-corr = df_clean[NUMERIC_COLS].corr(numeric_only=True)
-print("\nCorrelation matrix (numeric columns):")
-print(corr)
-
-
-# --- Code Cell: Exploratory visualizations (keep simple, notebook-friendly) ---
-
-# In a notebook, these will display inline.
-# In a script, they will open plot windows depending on your environment.
-
-ax1 = df_clean.plot(
-    kind="scatter",
-    x="flipper_length_mm",
-    y="bill_length_mm",
-    title="Flipper length vs Bill length",
-)
-ax1.set_xlabel("Flipper length (mm)")
-ax1.set_ylabel("Bill length (mm)")
-
-ax2 = df_clean.plot(
-    kind="scatter",
-    x="bill_depth_mm",
-    y="bill_length_mm",
-    title="Bill depth vs Bill length",
-)
-ax2.set_xlabel("Bill depth (mm)")
-ax2.set_ylabel("Bill length (mm)")
-
-# Boxplots by species help visualize separability.
-ax3 = df_clean.boxplot(
-    column="flipper_length_mm",
-    by=GROUP_COL,
-    grid=False,
-)
-ax3.set_title("Flipper length by species")
-ax3.set_xlabel("Species")
-ax3.set_ylabel("Flipper length (mm)")
-
-# Remove pandas' automatic extra title line (useful in notebooks)
-# In some environments, boxplot adds a second title line; this is safe to ignore.
+    LOG.debug("\n%s", data_dictionary)
+    return data_dictionary
 
 
-# --- Code Cell: Save outputs (optional but professional) ---
+def check_quality(df: pd.DataFrame) -> None:
+    """Perform basic data quality checks.
 
-RESULTS_DIR = ROOT_DIR / "data" / "results"
-RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    Checks include:
+    - Missing values
+    - Duplicate rows
+    - Basic numeric sanity checks
+    """
+    LOG.info("Checking missing values per column")
+    LOG.debug("\n%s", df.isna().sum().sort_values(ascending=False))
 
-data_dictionary_path = RESULTS_DIR / "penguins_data_dictionary_starter.csv"
-data_dictionary.to_csv(data_dictionary_path, index=False)
+    dup_count = int(df.duplicated().sum())
+    LOG.info("Duplicate rows detected: %s", dup_count)
 
-stats_overall_path = RESULTS_DIR / "penguins_stats_overall.csv"
-stats_overall.to_csv(stats_overall_path)
-
-stats_by_species_path = RESULTS_DIR / "penguins_stats_by_species.csv"
-stats_by_species.to_csv(stats_by_species_path)
-
-corr_path = RESULTS_DIR / "penguins_corr.csv"
-corr.to_csv(corr_path)
-
-print("\nWrote results to:")
-print("-", data_dictionary_path)
-print("-", stats_overall_path)
-print("-", stats_by_species_path)
-print("-", corr_path)
+    LOG.info("Basic sanity check for numeric columns")
+    LOG.debug("\n%s", df[NUMERIC_COLS].describe())
 
 
-# --- Code Cell: Notes to self (what to write in Markdown cells) ---
+# === Section 5. Optional Cleaning Step (EDA View) ===
 
-print("\nNotes to include in Markdown cells:")
-print("- What does one row represent?")
-print("- Rows/columns and what surprised you about the structure.")
-print("- Any missing data patterns and your choice (drop vs keep).")
-print("- Which measurements seem most useful for separating species?")
-print("- What plots suggest about separability and overlap.")
-print(
-    "- Next steps (optional): feature selection, simple rules, or a basic classifier later."
-)
+
+def make_clean_view(df: pd.DataFrame) -> pd.DataFrame:
+    """Create a cleaned view for EDA.
+
+    Strategy:
+    - Keep the original DataFrame unchanged
+    - Drop rows missing key numeric fields and grouping field
+    """
+    LOG.info("Creating cleaned view for EDA (dropping rows with key missing values)")
+    df_clean = df.dropna(subset=NUMERIC_COLS + [GROUP_COL]).copy()
+    LOG.info(
+        "Cleaned view shape: %s rows, %s columns", df_clean.shape[0], df_clean.shape[1]
+    )
+    return df_clean
+
+
+# === Section 6. Descriptive Statistics ===
+
+
+def descriptive_stats(df_clean: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Compute descriptive statistics overall and by group.
+
+    Args:
+        df_clean (pd.DataFrame): Cleaned DataFrame for analysis.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]: Overall stats, stats by group.
+
+    Notes:
+    - Descriptive statistics summarize key aspects of numeric data.
+    - Grouped stats help compare across categories.
+    """
+    LOG.info("Computing overall descriptive statistics")
+    stats_overall = df_clean[NUMERIC_COLS].describe().T
+    LOG.debug("\n%s", stats_overall)
+
+    LOG.info("Computing descriptive statistics by species")
+    stats_by_species = df_clean.groupby(GROUP_COL)[NUMERIC_COLS].agg(
+        ["count", "mean", "std", "min", "max"]
+    )
+    LOG.debug("\n%s", stats_by_species)
+
+    return stats_overall, stats_by_species
+
+
+# === Section 7. Simple Correlations (Numeric Only) ===
+
+
+def correlation_matrix(df_clean: pd.DataFrame) -> pd.DataFrame:
+    """Compute a numeric correlation matrix.
+
+    Args:
+        df_clean (pd.DataFrame): Cleaned DataFrame for analysis.
+
+    Returns:
+        pd.DataFrame: Correlation matrix of numeric columns.
+
+    Notes:
+    - Correlation matrices help identify relationships between numeric variables.
+    - Values range from -1 (perfect negative) to +1 (perfect positive).
+    """
+    LOG.info("Computing correlation matrix for numeric columns")
+    corr = df_clean[NUMERIC_COLS].corr()
+    LOG.debug("\n%s", corr)
+    return corr
+
+
+# === Section 8. Create a Seaborn Scatter Plot ===
+
+
+def make_plots(df_clean: pd.DataFrame) -> None:
+    """Create simple, notebook-friendly plots.
+
+    Notes for learners:
+    - Plots help reveal patterns not obvious in tables.
+    """
+    LOG.info("Creating scatter plot: flipper length vs bill length")
+
+    scatter_plt: Axes = sns.scatterplot(
+        data=df_clean,
+        x="flipper_length_mm",
+        y="bill_length_mm",
+        hue=GROUP_COL,
+    )
+    scatter_plt.set_xlabel("Flipper length (mm)")
+    scatter_plt.set_ylabel("Bill length (mm)")
+    scatter_plt.set_title("Flipper length vs Bill length (by species)")
+
+    plt.figure()
+    sns.boxplot(
+        data=df_clean,
+        x=GROUP_COL,
+        y="flipper_length_mm",
+    )
+    plt.title("Flipper length by species")
+
+    plt.show()
+
+
+# === Section LAST. Reminder: Run All before sending to GitHub ===
+
+
+def main() -> None:
+    """Main function to run the EDA workflow."""
+    log_header(LOG, "Exploratory Data Analysis (EDA) - Penguins")
+
+    LOG.info("Section 1: Setup at the top of the file")
+
+    LOG.info("Section 2: Load the data")
+    df = load_data()
+
+    LOG.info("Section 3: Inspect data shape and basic structure")
+    inspect_basic(df)
+
+    LOG.info("Section 4: Check data quality")
+    build_data_dictionary(df)
+    check_quality(df)
+
+    LOG.info("Section 5: Create a cleaned view for EDA")
+    df_clean = make_clean_view(df)
+
+    LOG.info("Section 6: Compute descriptive statistics for numeric columns")
+    descriptive_stats(df_clean)
+
+    LOG.info("Section 7: Show correlation matrix for numeric columns")
+    correlation_matrix(df_clean)
+
+    LOG.info("Section 8: Make plots")
+    make_plots(df_clean)
+
+    LOG.info("EDA workflow complete")
+    LOG.info("IMPORTANT: This script creates chart windows.")
+    LOG.info(
+        "Close any chart windows and terminate this process with CTRL+c as needed."
+    )
+
+
+if __name__ == "__main__":
+    main()

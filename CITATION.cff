@@ -36,7 +36,6 @@ abstract: >
 keywords:
   # identity
   - data analytics
-  - python
   - notebooks
   - exploratory-data-analysis
   - tabular-data
